@@ -17,9 +17,10 @@ router.get('/', async (req, res) => {
     }
 
     const { rows } = await db.query(queryText, queryParams);
+    console.log(`[TASK_READ] Fetched ${rows.length} task(s) from database (Filter: ${status ? status.toUpperCase() : 'ALL'})`);
     return res.json(rows);
   } catch (err) {
-    console.error('Error fetching tasks:', err);
+    console.error('[TASK_ERROR] Error fetching tasks:', err);
     return res.status(500).json({ error: 'Failed to retrieve tasks' });
   }
 });
@@ -31,11 +32,13 @@ router.get('/:id', async (req, res) => {
     const { rows } = await db.query('SELECT * FROM tasks WHERE id = $1', [id]);
     
     if (rows.length === 0) {
+      console.warn(`[TASK_WARN] Task ID ${id} not found`);
       return res.status(404).json({ error: 'Task not found' });
     }
+    console.log(`[TASK_READ] Fetched task details for ID ${id}: "${rows[0].title}"`);
     return res.json(rows[0]);
   } catch (err) {
-    console.error(`Error fetching task ${req.params.id}:`, err);
+    console.error(`[TASK_ERROR] Error fetching task ${req.params.id}:`, err);
     return res.status(500).json({ error: 'Failed to retrieve task' });
   }
 });
@@ -46,6 +49,7 @@ router.post('/', async (req, res) => {
     const { title, description, status } = req.body;
 
     if (!title || typeof title !== 'string' || title.trim() === '') {
+      console.warn('[TASK_WARN] Task creation failed: Title is required');
       return res.status(400).json({ error: 'Title is required' });
     }
 
@@ -58,9 +62,11 @@ router.post('/', async (req, res) => {
       [title.trim(), description || '', taskStatus]
     );
 
-    return res.status(201).json(rows[0]);
+    const createdTask = rows[0];
+    console.log(`[TASK_CREATE] Successfully created Task ID ${createdTask.id}: "${createdTask.title}" [Status: ${createdTask.status}]`);
+    return res.status(201).json(createdTask);
   } catch (err) {
-    console.error('Error creating task:', err);
+    console.error('[TASK_ERROR] Error creating task:', err);
     return res.status(500).json({ error: 'Failed to create task' });
   }
 });
@@ -74,6 +80,7 @@ router.put('/:id', async (req, res) => {
     // Check if task exists
     const existing = await db.query('SELECT * FROM tasks WHERE id = $1', [id]);
     if (existing.rows.length === 0) {
+      console.warn(`[TASK_WARN] Update failed: Task ID ${id} not found`);
       return res.status(404).json({ error: 'Task not found' });
     }
 
@@ -84,6 +91,7 @@ router.put('/:id', async (req, res) => {
 
     if (status !== undefined) {
       if (!VALID_STATUSES.includes(status.toUpperCase())) {
+        console.warn(`[TASK_WARN] Update failed: Invalid status "${status}"`);
         return res.status(400).json({ error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` });
       }
       newStatus = status.toUpperCase();
@@ -94,9 +102,11 @@ router.put('/:id', async (req, res) => {
       [newTitle, newDesc, newStatus, id]
     );
 
-    return res.json(rows[0]);
+    const updatedTask = rows[0];
+    console.log(`[TASK_UPDATE] Successfully updated Task ID ${updatedTask.id}: "${updatedTask.title}" [Status: ${updatedTask.status}]`);
+    return res.json(updatedTask);
   } catch (err) {
-    console.error(`Error updating task ${req.params.id}:`, err);
+    console.error(`[TASK_ERROR] Error updating task ${req.params.id}:`, err);
     return res.status(500).json({ error: 'Failed to update task' });
   }
 });
@@ -108,12 +118,14 @@ router.delete('/:id', async (req, res) => {
     const { rowCount } = await db.query('DELETE FROM tasks WHERE id = $1', [id]);
 
     if (rowCount === 0) {
+      console.warn(`[TASK_WARN] Delete failed: Task ID ${id} not found`);
       return res.status(404).json({ error: 'Task not found' });
     }
 
+    console.log(`[TASK_DELETE] Successfully deleted Task ID ${id} from database`);
     return res.json({ message: 'Task deleted successfully', id: parseInt(id, 10) });
   } catch (err) {
-    console.error(`Error deleting task ${req.params.id}:`, err);
+    console.error(`[TASK_ERROR] Error deleting task ${req.params.id}:`, err);
     return res.status(500).json({ error: 'Failed to delete task' });
   }
 });
