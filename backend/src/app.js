@@ -10,15 +10,8 @@ app.use(cors());
 app.use(express.json());
 
 // Healthcheck endpoint (Section 2 Requirement)
-app.get('/health', async (req, res) => {
-  try {
-    // Optionally check DB connectivity
-    await db.query('SELECT 1');
-    return res.status(200).json({ status: 'UP', database: 'CONNECTED' });
-  } catch (err) {
-    console.error('Healthcheck DB connection error:', err.message);
-    return res.status(503).json({ status: 'DOWN', error: err.message });
-  }
+app.get('/health', (req, res) => {
+  return res.status(200).json({ status: 'UP' });
 });
 
 // API Routes

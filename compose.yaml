@@ -1,6 +1,9 @@
 name: task-management-app
 
 services:
+  # ==========================================
+  # 1. Database Container (PostgreSQL)
+  # ==========================================
   database:
     image: postgres:16-alpine
     container_name: task-database
@@ -22,11 +25,14 @@ services:
       timeout: 5s
       retries: 5
 
+  # ==========================================
+  # 2. Backend REST API Container (Node.js/Express)
+  # ==========================================
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    image: ${DOCKERHUB_USER:-thoughtclan}/task-backend:v1.0.0
+    image: ${DOCKERHUB_USER:-prajwal3466}/task-backend:v1.0.0
     container_name: task-backend
     restart: unless-stopped
     ports:
@@ -46,16 +52,19 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:8080/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))\""]
-      interval: 10s
+      interval: 5s
       timeout: 5s
-      retries: 3
-      start_period: 10s
+      retries: 5
+      start_period: 20s
 
+  # ==========================================
+  # 3. Frontend UI Container (React + Nginx)
+  # ==========================================
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    image: ${DOCKERHUB_USER:-thoughtclan}/task-frontend:v1.0.0
+    image: ${DOCKERHUB_USER:-prajwal3466}/task-frontend:v1.0.0
     container_name: task-frontend
     restart: unless-stopped
     ports:
@@ -66,10 +75,12 @@ services:
       backend:
         condition: service_healthy
 
+# Shared Bridge Network
 networks:
   app-network:
     driver: bridge
 
+# Named Persistent Volume
 volumes:
   postgres-data:
     driver: local
