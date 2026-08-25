@@ -296,3 +296,51 @@ docker compose down -v
 - [x] **Dockerfiles**: Multi-stage builds, layer caching, non-root `USER node`, healthchecks.
 - [x] **Docker Compose**: Clean orchestration in `compose.yaml`.
 - [x] **Documentation**: Complete setup, commands, network explanation, and troubleshooting scenarios in `README.md`.
+
+
+---
+
+## ☸️ Kubernetes (k8s) Deployment Guide
+
+This project includes production-ready Kubernetes manifests in the k8s/ directory to orchestrate the application using your existing Docker Hub images (prajwal3466/task-backend:v1.0.0 and prajwal3466/task-frontend:v1.0.0).
+
+### 📂 Manifests Architecture
+
+| File | K8s Objects | Description |
+|---|---|---|
+| k8s/01-configmap-secret.yaml | ConfigMap, Secret | Stores DB_HOST, DB_PORT, APP_ENV, DB credentials, and schema.sql seed script. |
+| k8s/02-database.yaml | PVC, Deployment, Service | Provisions 1Gi persistent volume, launches PostgreSQL 16 Pod, and exposes ClusterIP database:5432. |
+| k8s/03-backend.yaml | Deployment, Service | Launches Node.js REST API Pod with liveness/readiness probes and exposes ClusterIP ackend:8080. |
+| k8s/04-frontend.yaml | Deployment, Service | Launches React + Nginx UI Pod and exposes NodePort service on port 30080. |
+
+---
+
+### 🚀 Deploying to Kubernetes (Minikube / Docker Desktop / Kind)
+
+#### Step 1: Apply all manifests
+`ash
+kubectl apply -f k8s/
+``n
+#### Step 2: Verify Pods and Services
+`ash
+kubectl get pods,svc,pvc
+``n
+**Expected Output**:
+`	ext
+NAME                                READY   STATUS    RESTARTS   AGE
+pod/task-database-xxxxxxxxx-xxxxx   1/1     Running   0          25s
+pod/task-backend-xxxxxxxxx-xxxxx    1/1     Running   0          20s
+pod/task-frontend-xxxxxxxxx-xxxxx   1/1     Running   0          15s
+
+NAME                       TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+service/database           ClusterIP   10.96.120.10    <none>        5432/TCP         25s
+service/backend            ClusterIP   10.96.140.20    <none>        8080/TCP         20s
+service/frontend-service   NodePort    10.96.160.30    <none>        3000:30080/TCP   15s
+``n
+#### Step 3: Access Application
+- **Browser URL**: **[http://localhost:30080](http://localhost:30080)** (or minikube service frontend-service)
+
+#### Step 4: Tear down Kubernetes Deployment
+`ash
+kubectl delete -f k8s/
+``n
